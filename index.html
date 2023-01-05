@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>TETRIS</title>
+    <link rel ="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="./tetris.css">
+</head>
+<body>
+<header>
+    <h1>TETRIS</h1>
+</header>
+<div id="app">
+    <div class="board">
+        <table>
+            <tr v-for="(b, i) in display" :key="i">
+                <td
+                        v-for="(c, j) in b"
+                        :key="j"
+                        class="block"
+                        :class="c | blockClass"
+                />
+            </tr>
+        </table>
+        <div class="gameOver" v-if="gameover">
+            <span>GAME OVER</span>
+        </div>
+    </div>
+    <div>
+        <div class="blockPanel">
+            <h2>Next</h2>
+            <table>
+                <tr v-for="(b, i) in nextBlock" :key="i">
+                    <td v-for="(c, j) in b" :key="j" class="block" :class="c | blockClass"></td>
+                </tr>
+            </table>
+        </div>
+        <br>
+        <div>
+            <button :disabled="started" @click="start" class="greenBtn">Start</button>
+            <button @click="toggleTimer()" class="greenBtn is-half"><i class="fas fa-pause"></i></button>
+            <button @click="description=true; stopTimer()" class="greenBtn is-half"><i class="fas fa-question"></i></button>
+        </div>
+        <br>
+        <div class="numPanel">
+            <h2>Deleted Lines</h2>
+            <p>{{deleted_lines}}</p>
+        </div>
+        <div class="numPanel">
+            <h2>Score</h2>
+            <p>{{score}}</p>
+        </div>
+        <div class="numPanel">
+            <h2>Level</h2>
+            <p>{{level}}</p>
+        </div>
+    </div>
+    <transition name="description">
+        <div class="modal" v-if="description">
+            <h2>How to play</h2>
+            <h3>Key map</h3>
+            <ul>
+                <li>← : move to left</li>
+                <li>→ : move to right</li>
+                <li>↓ : soft drop</li>
+                <li>↑ : hard drop</li>
+                <li>Space : rotate</li>
+            </ul>
+            <h3>Score</h3>
+            <ul>
+                <li>1 line : 10</li>
+                <li>2 lines : 80</li>
+                <li>3 lines : 270</li>
+                <li>4 lines : 640</li>
+            </ul>
+            <button @click="description=false; startTimer()" class="greenBtn is-half">Close</button>
+        </div>
+    </transition>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.min.js"></script>
+<script>
+	const blocks = {
+		0: [
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0]
+		],
+		1: [
+			[0, 0, 1, 0, 0],
+			[0, 0, 1, 0, 0],
+			[0, 0, 1, 0, 0],
+			[0, 0, 1, 0, 0],
+			[0, 0, 0, 0, 0]
+		],
+		2: [
+			[0, 0, 0, 0, 0],
+			[0, 0, 2, 2, 0],
+			[0, 0, 2, 2, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0]
+		],
+		3: [
+			[0, 0, 0, 0, 0],
+			[0, 0, 3, 0, 0],
+			[0, 3, 3, 3, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0]
+		],
+		4: [
+			[0, 0, 0, 0, 0],
+			[0, 0, 4, 0, 0],
+			[0, 0, 4, 0, 0],
+			[0, 4, 4, 0, 0],
+			[0, 0, 0, 0, 0]
+		],
+		5: [
+			[0, 0, 0, 0, 0],
+			[0, 0, 5, 0, 0],
+			[0, 0, 5, 0, 0],
+			[0, 0, 5, 5, 0],
+			[0, 0, 0, 0, 0]
+		],
+		6: [
+			[0, 0, 0, 0, 0],
+			[0, 0, 6, 6, 0],
+			[0, 6, 6, 0, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0]
+		],
+		7: [
+			[0, 0, 0, 0, 0],
+			[0, 7, 7, 0, 0],
+			[0, 0, 7, 7, 0],
+			[0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0]
+		]
+	};
+
+	let data = {
+		board: {
+			data: [],
+			x: 10,
+			y: 20
+		},
+		block: {
+			type: 0,
+			data: [],
+			x: 0,
+			y: 0,
+		},
+		next: 0,
+		started: false,
+		gameover: false,
+		intervalId: undefined,
+		deleted_lines: 0,
+		score: 0,
+		level: 1,
+		description: false,
+		stopped: false
+	}
+
+	let methods = {
+		start() {
+			this.clear();
+			this.setNext();
+			this.setBlock();
+			this.started = true;
+			this.stopped = false;
+			this.startTimer();
+		},
+		end() {
+			this.started = false;
+			this.gameover = true;
+			this.stopTimer();
+		},
+		startTimer() {
+			this.intervalId = setInterval(this.down, 1000 - (this.level - 1) * 100);
+			this.stopped = false;
+		},
+		stopTimer() {
+			clearInterval(this.intervalId);
+			this.stopped = true;
+		},
+		resetTimer() {
+			this.stopTimer();
+			this.startTimer();
+		},
+		toggleTimer() {
+			if (this.stopped) {
+				this.startTimer();
+			} else {
+				this.stopTimer();
+			}
+		},
+		clear() {
+			this.board.data = [...Array(this.board.y)].map(() => Array(this.board.x).fill(0));
+			this.gameover = false;
+			this.score = 0;
+			this.level = 1;
+		},
+		setBlock() {
+			//次のブロック設定
+			this.setNext();
+			//ブロック再配置
+			this.initBlock();
+		},
+		initBlock() {
+			this.block.x = 2;
+			this.block.y = this.block.type === 1 ? 0 : -1;
+			this.block.data = JSON.parse(JSON.stringify(blocks[this.block.type]));
+			while(this.isOverlap()) {
+				this.block.y -= 1;
+			}
+		},
+		isOverlap() {
+			for (let h = 0; h < this.block.data.length; h++) {
+				const y = this.block.y + h;
+				if (y < 0) {
+					continue;
+				}
+				for (let v = 0; v < this.block.data[h].length; v++) {
+					const x = this.block.x + v;
+					if (this.block.data[h][v] > 0 && this.board.data[y][x] > 0) {
+						return true;
+					}
+				}
+			}
+			return false;
+		},
+		setNext() {
+			this.block.type = this.next;
+			this.next = Math.floor(Math.random() * 7) + 1;
+		},
+		handleKeydown(event) {
+			event.preventDefault()
+			//右移動
+			if (event.keyCode === 39) {
+				this.right();
+			}
+			//左移動
+			else if (event.keyCode === 37) {
+				this.left();
+			}
+			//最下移動
+			else if (event.keyCode === 38) {
+				this.downBottom();
+			}
+			//下移動
+			else if (event.keyCode === 40) {
+				this.down();
+			}
+			//回転
+			else if (event.keyCode === 32) {
+				this.rotate();
+			}
+		},
+		right() {
+			if (!this.canMove(this.block.data, this.block.x + 1, this.block.y)) {
+				return;
+			}
+			this.block.x += 1;
+		},
+		left() {
+			if (!this.canMove(this.block.data, this.block.x - 1, this.block.y)) {
+				return;
+			}
+			this.block.x -= 1;
+		},
+		rotate() {
+			//回転後のブロック生成
+			let block = JSON.parse(JSON.stringify(this.block.data))
+			for (let h = 0; h < block.length; h++) {
+				for (let v = 0; v < block[h].length; v++) {
+					block[block.length - v - 1][h] = this.block.data[h][v];
+				}
+			}
+			//回転可否
+			if (!this.canMove(block, this.block.x, this.block.y)) {
+				return;
+			}
+			this.block.data = block;
+		},
+		down() {
+			if (this.canMove(this.block.data, this.block.x, this.block.y + 1)) {
+				this.block.y += 1;
+				this.resetTimer();
+				return true;
+			}
+			//下までたどり着いたら盤面更新
+			this.board.data = JSON.parse(JSON.stringify(this.display))
+			//ゲームオーバー判定
+			const g = this.block.type === 1 ? 0 : -1;
+			if (this.block.y < g) {
+				this.end();
+				return;
+			}
+			//ブロック配置
+			this.setBlock();
+			//ライン消し
+			this.deleteLine();
+			return false;
+		},
+		downBottom() {
+			while (this.down()) {
+			}
+		},
+		canMove(block, x, y) {
+			for (let h = 0; h < block.length; h++) {
+				for (let v = 0; v < block[h].length; v++) {
+					//左端判定
+					if (x + v < 0 && block[h][v] > 0) {
+						return false;
+					}
+					//右端判定
+					if (x + v > this.board.x - 1 && block[h][v] > 0) {
+						return false;
+					}
+					//下端判定
+					if (y + h > this.board.y - 1 && block[h][v] > 0) {
+						return false;
+					}
+					//上端判定
+					if (y + h < 0 && block[h][v] > 0) {
+						return false;
+					}
+					//ボード外の座標は無視
+					if (x + v < 0 || x + v > this.board.x - 1 || y + h > this.board.y - 1 || y + h < 0) {
+						continue;
+					}
+					//ブロック判定
+					if (this.board.data[y + h][x + v] > 0 && block[h][v] > 0) {
+						return false;
+					}
+				}
+			}
+			return true;
+		},
+		deleteLine() {
+			//ライン消し判定
+			let lines = [];
+			for (let h = 0; h < this.board.y; h++) {
+				let c = 1;
+				for (let v = 0; v < this.board.x; v++) {
+					c *= this.board.data[h][v];
+				}
+				if (c > 0) {
+					lines.push(h);
+				}
+			}
+			//ライン消し
+			for(let i = 0; i < lines.length; i++) {
+				const l = lines[i];
+				for (let h = l; h > 1; h--) {
+					this.board.data[h] = this.board.data[h - 1];
+				}
+			}
+			this.setScore(lines.length);
+		},
+		setScore(num) {
+			this.score += 10 * num ** 3;
+			this.deleted_lines += num;
+		}
+	}
+	let computed = {
+		display() {
+			//ボードのコピー
+			let board = JSON.parse(JSON.stringify(this.board.data))
+			if (this.block.data.length === 0) {
+				return board;
+			}
+			//ブロックの描画
+			for (let h = 0; h < this.block.data.length; h++) {
+				for (let v = 0; v < this.block.data[h].length; v++) {
+					const y = this.block.y + h;
+					const x = this.block.x + v;
+					if (y < 0 || x < 0 || y > this.board.y - 1 || x > this.board.x - 1) {
+						continue;
+					}
+					if (this.block.data[h][v] === 0) {
+						continue;
+					}
+					board[h + this.block.y][v + this.block.x] = this.block.data[h][v];
+				}
+			}
+			return board;
+		},
+		nextBlock() {
+			return blocks[this.next]
+		}
+	}
+
+
+	const app = new Vue({
+		el: "#app",
+		data: data,
+		methods: methods,
+		computed: computed,
+		created() {
+			this.clear();
+		},
+		mounted() {
+			window.addEventListener("keydown", this.handleKeydown);
+		},
+		beforeDestroy() {
+			window.removeEventListener("keydown", this.handleKeydown);
+		},
+		filters: {
+			blockClass(val) {
+				switch(val) {
+					case 1: return 'block-i';
+					case 2: return 'block-o';
+					case 3: return 'block-t';
+					case 4: return 'block-j';
+					case 5: return 'block-l';
+					case 6: return 'block-s';
+					case 7: return 'block-z';
+					default: return '';
+				}
+			}
+		},
+		watch: {
+			score(val) {
+				if (this.level >= 10) {
+					return;
+				}
+				if (val >= (this.level + 1) ** 3 * 100) {
+					this.level += 1;
+					this.resetTimer();
+				}
+			}
+		}
+	})
+</script>
+</body>
+</html>

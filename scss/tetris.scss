@@ -1,0 +1,155 @@
+body {
+	background: #333;
+}
+
+h1 {
+	color: #ffffff;
+	text-align: center;
+	font-size: 3vw;
+	margin: 15px;
+}
+
+#app {
+	display: flex;
+	justify-content: center;
+	& > *:first-child {
+		margin-right: 20px;
+	}
+	position: relative;
+}
+
+.board {
+	padding: 30px;
+	background: #1c1c1c;
+	position: relative;
+}
+
+.block {
+	width: 30px;
+	height: 30px;
+	background: #252525;
+	border: 1px solid rgba(0, 0, 0, 0.2);
+	&-i {
+		background: #71C0F5;
+	}
+	&-o {
+		background: #F8D95D;
+	}
+	&-t {
+		background: #C67DE3;
+	}
+	&-j {
+		background: #365CF3;
+	}
+	&-l {
+		background: #E67E22;
+	}
+	&-s {
+		background: #6EEFA4;
+	}
+	&-z {
+		background: #EE5141;
+	}
+}
+
+.gameOver {
+	display: block;
+	position: absolute;
+	top: calc(50% - 50px);
+	left: 0;
+	width: 100%;
+	text-align: center;
+	font-size: 24px;
+	font-weight: bold;
+	padding: 20px 0;
+	color: #EE5141;
+	background: #222;
+	opacity: 0.9;
+}
+
+.blockPanel {
+	padding : 15px;
+	background: #1c1c1c;
+	> h2 {
+		color: #bdc3c7;
+		font-size: 14px;
+	}
+	.block {
+		width : 20px;
+		height: 20px;
+	}
+}
+
+.numPanel {
+	padding: 10px;
+	background: #1c1c1c;
+	> h2 {
+		color: #bdc3c7;
+		font-size: 14px;
+	}
+	> p {
+		background: #252525;
+		padding: 7px;
+		color: #fff;
+	}
+}
+
+.button-wrap {
+
+}
+
+.greenBtn {
+	display: block;
+	width: 100%;
+	padding: 20px;
+	margin-bottom: 5px;
+	border: none;
+	outline: none;
+	background: #16a085;
+	color: white;
+	font-size: 20px;
+	border-radius: 10px;
+	cursor: pointer;
+	&.is-half {
+		display: inline-block;
+		width: 48%;
+		padding: 20px 5px;
+	}
+	&:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+}
+
+.modal {
+	color: #fff;
+	position: fixed;
+	top: 0;
+	left: 0;
+	background: rgba(0, 0, 0, 0.6);
+	z-index : 100;
+	padding: 50px;
+	> h2 {
+		font-size: 32px;
+		margin-bottom: 30px;
+	}
+	> h3 {
+		font-size: 24px;
+		margin-bottom: 20px;
+	}
+	> ul {
+		margin-left: 30px;
+		margin-bottom: 40px;
+		> li {
+			line-height: 30px;
+		}
+	}
+}
+.description-enter-active,
+.description-leave-active {
+	transition: all 0.6s;
+}
+.description-enter,
+.description-leave-to {
+	opacity: 0;
+}
